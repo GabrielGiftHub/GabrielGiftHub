@@ -28,16 +28,12 @@ Estou trabalhando em diversos projetos para consolidar meu aprendizado em **C** 
 - 🛡️**Ferramentas**: GitfHub, Visual Studio Code
 - 💻  Meu foco principal para aprender lógica de programação e resolver problemas.
 
-## 📞 Contato 
-Se quiser acompanhar minha jornada ou trocar ideias, fique à vontade para entrar em contato!  
-📎 **LinkedIn**: [Gabriel Guimaraes](https://www.linkedin.com/in/gabriel-guimaraes-6127922a7/)
+### 📫 Vamos Conversar?
+Se você compartilha dos mesmos interesses ou quer trocar ideias, sinta-se à vontade para entrar em contato comigo:
+- 📧 Email: [gabrielgui308@gmail.com](mailto:gabrielgui308@gmail.com)
+- 💼 LinkedIn: [Meu LinkedIn](https://www.linkedin.com/in/gabriel-guimaraes-6127922a7/)
+- 🌐 GitHub: [Meu GitHub](https://github.com/GabrielGiftHub)
 
-<p align="left"> 
-    <a href="https://www.linkedin.com/in/gabriel-guimaraes-6127922a7/" target="_blank">
-        <img 
-            alt="LinkedIn" 
-            title="Conecte-se comigo no LinkedIn" 
-            src="https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white"
-        />
-    </a>
-</p>
+---
+
+ **Vamos aprender e crescer juntos!** Seja bem-vindo ao meu GitHub e fique à vontade para explorar meus repositórios e contribuir com sugestões ou melhorias.
