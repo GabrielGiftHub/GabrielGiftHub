@@ -1,6 +1,6 @@
 # 👨🏻‍💻 Gabriel Guimaraes
 
-![Gabriel GiftHub GitHub stats](https://github-readme-stats.vercel.app/api?username=GabrielGiftHub&show_icons=true&theme=dracula)
+![Gabriel GiftHub GitHub stats](https://github-readme-stats.vercel.app/api?username=GabrielGiftHub&show_icons=true&theme=onedark)
 
 
 ##  Sobre Mim
