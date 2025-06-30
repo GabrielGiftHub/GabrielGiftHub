@@ -3,9 +3,6 @@
 ![Gabriel GiftHub GitHub stats](https://github-readme-stats.vercel.app/api?username=GabrielGiftHub&show_icons=true&theme=onedark)
 
 
-##  Sobre Mim
-Olá! Meu nome é Gabriel Guimaraes, tenho 22 anos e atualmente estou cursando **Tecnologia da Informação (Redes de Computadores)** na **Estácio**. Concluí o ensino médio no **ICJ**, onde também finalizei um curso técnico em informática. Sou apaixonado por tecnologia e estou sempre em busca de aprender e aprimorar minhas habilidades, especialmente nas áreas de **programação**, **redes de computadores** e **ciência da computação**.
-
 ## 🚀 Projetos em Desenvolvimento
 Estou trabalhando em diversos projetos para consolidar meu aprendizado em **C** e explorar conceitos fundamentais de programação e redes. Alguns dos tópicos que tenho explorado incluem:
 - ✅ Estruturas de decisão e controle de fluxo.
