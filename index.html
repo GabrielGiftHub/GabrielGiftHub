@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Devil Platformer</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: #1a1a2e;
+        }
+        
+        canvas {
+            display: block;
+            background: linear-gradient(180deg, #0f0c29, #302b63, #24243e);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .pulse {
+            animation: pulse 1s infinite;
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen">
+    <div class="relative">
+        <canvas id="gameCanvas"></canvas>
+        
+        <div id="deathCounter" class="absolute top-4 left-4 text-white text-2xl font-bold bg-red-900 bg-opacity-75 px-4 py-2 rounded">
+            Mortes: <span id="deaths">0</span>
+        </div>
+        
+        <div id="levelCounter" class="absolute top-4 right-4 text-white text-2xl font-bold bg-purple-900 bg-opacity-75 px-4 py-2 rounded">
+            Nível: <span id="level">1</span>
+        </div>
+        
+        <div id="gameOver" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 hidden">
+            <div class="text-center">
+                <h1 class="text-6xl font-bold text-red-600 mb-4">VOCÊ MORREU!</h1>
+                <p class="text-white text-2xl mb-6">Pressione ESPAÇO para recomeçar</p>
+            </div>
+        </div>
+        
+        <div id="victory" class="absolute inset-0 flex items-center justify-center bg-black bg-opacity-80 hidden">
+            <div class="text-center">
+                <h1 class="text-6xl font-bold text-green-400 mb-4">NÍVEL COMPLETO!</h1>
+                <p class="text-white text-2xl mb-6">Pressione ESPAÇO para continuar</p>
+            </div>
+        </div>
+        
+        <div id="instructions" class="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-center bg-black bg-opacity-50 px-6 py-3 rounded">
+            <p class="text-lg">Setas/WASD: Mover | Espaço: Pular | Cuidado com as armadilhas!</p>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        canvas.width = 1200;
+        canvas.height = 600;
+        
+        // Game state
+        let gameState = {
+            deaths: 0,
+            currentLevel: 1,
+            isGameOver: false,
+            isVictory: false,
+            keys: {},
+            gravity: 0.8,
+            friction: 0.85
+        };
+        
+        // Player
+        const player = {
+            x: 50,
+            y: 450,
+            width: 30,
+            height: 30,
+            velocityX: 0,
+            velocityY: 0,
+            speed: 5,
+            jumpPower: 15,
+            onGround: false,
+            color: '#ff6b6b'
+        };
+        
+        // Platforms
+        let platforms = [];
+        let spikes = [];
+        let movingPlatforms = [];
+        let disappearingPlatforms = [];
+        let goal = {};
+        let fallingBlocks = [];
+        
+        // Level designs
+        const levels = [
+            {
+                platforms: [
+                    { x: 0, y: 550, width: 400, height: 50 },
+                    { x: 500, y: 450, width: 200, height: 20 },
+                    { x: 800, y: 350, width: 200, height: 20 }
+                ],
+                spikes: [
+                    { x: 450, y: 530, width: 40, height: 20 },
+                    { x: 750, y: 530, width: 100, height: 20 }
+                ],
+                movingPlatforms: [
+                    { x: 300, y: 300, width: 150, height: 20, speed: 2, direction: 1, minX: 300, maxX: 600 }
+                ],
+                goal: { x: 1100, y: 300, width: 50, height: 50 }
+            },
+            {
+                platforms: [
+                    { x: 0, y: 550, width: 200, height: 50 },
+                    { x: 300, y: 450, width: 150, height: 20 },
+                    { x: 550, y: 350, width: 150, height: 20 },
+                    { x: 800, y: 250, width: 150, height: 20 }
+                ],
+                spikes: [
+                    { x: 200, y: 530, width: 100, height: 20 },
+                    { x: 450, y: 430, width: 100, height: 20 },
+                    { x: 700, y: 330, width: 100, height: 20 }
+                ],
+                disappearingPlatforms: [
+                    { x: 1000, y: 400, width: 150, height: 20, visible: true, timer: 0, visibleTime: 120, hiddenTime: 60 }
+                ],
+                movingPlatforms: [
+                    { x: 200, y: 200, width: 120, height: 20, speed: 3, direction: 1, minY: 200, maxY: 400, axis: 'y' }
+                ],
+                goal: { x: 1100, y: 150, width: 50, height: 50 }
+            },
+            {
+                platforms: [
+                    { x: 0, y: 550, width: 150, height: 50 },
+                    { x: 250, y: 500, width: 100, height: 20 },
+                    { x: 450, y: 400, width: 100, height: 20 },
+                    { x: 650, y: 300, width: 100, height: 20 },
+                    { x: 900, y: 450, width: 150, height: 20 }
+                ],
+                spikes: [
+                    { x: 150, y: 530, width: 100, height: 20 },
+                    { x: 350, y: 530, width: 100, height: 20 },
+                    { x: 550, y: 530, width: 100, height: 20 },
+                    { x: 750, y: 530, width: 150, height: 20 }
+                ],
+                fallingBlocks: [
+                    { x: 200, y: 350, width: 100, height: 20, falling: false, fallSpeed: 0, triggered: false }
+                ],
+                movingPlatforms: [
+                    { x: 300, y: 250, width: 120, height: 20, speed: 4, direction: 1, minX: 300, maxX: 700 }
+                ],
+                goal: { x: 1000, y: 380, width: 50, height: 50 }
+            }
+        ];
+        
+        function loadLevel(levelNum) {
+            const level = levels[levelNum - 1];
+            platforms = JSON.parse(JSON.stringify(level.platforms || []));
+            spikes = JSON.parse(JSON.stringify(level.spikes || []));
+            movingPlatforms = JSON.parse(JSON.stringify(level.movingPlatforms || []));
+            disappearingPlatforms = JSON.parse(JSON.stringify(level.disappearingPlatforms || []));
+            fallingBlocks = JSON.parse(JSON.stringify(level.fallingBlocks || []));
+            goal = JSON.parse(JSON.stringify(level.goal));
+            
+            player.x = 50;
+            player.y = 450;
+            player.velocityX = 0;
+            player.velocityY = 0;
+            player.onGround = false;
+            
+            gameState.isGameOver = false;
+            gameState.isVictory = false;
+            document.getElementById('gameOver').classList.add('hidden');
+            document.getElementById('victory').classList.add('hidden');
+        }
+        
+        function resetLevel() {
+            loadLevel(gameState.currentLevel);
+        }
+        
+        function drawPlayer() {
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // Eyes
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(player.x + 8, player.y + 8, 6, 6);
+            ctx.fillRect(player.x + 16, player.y + 8, 6, 6);
+            
+            // Pupils
+            ctx.fillStyle = '#000';
+            ctx.fillRect(player.x + 10, player.y + 10, 3, 3);
+            ctx.fillRect(player.x + 18, player.y + 10, 3, 3);
+        }
+        
+        function drawPlatforms() {
+            ctx.fillStyle = '#4a4a4a';
+            platforms.forEach(platform => {
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                ctx.strokeStyle = '#666';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
+            });
+        }
+        
+        function drawSpikes() {
+            spikes.forEach(spike => {
+                ctx.fillStyle = '#ff0000';
+                ctx.beginPath();
+                for (let i = 0; i < spike.width; i += 20) {
+                    ctx.moveTo(spike.x + i, spike.y + spike.height);
+                    ctx.lineTo(spike.x + i + 10, spike.y);
+                    ctx.lineTo(spike.x + i + 20, spike.y + spike.height);
+                }
+                ctx.closePath();
+                ctx.fill();
+            });
+        }
+        
+        function drawMovingPlatforms() {
+            ctx.fillStyle = '#6c5ce7';
+            movingPlatforms.forEach(platform => {
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                ctx.strokeStyle = '#a29bfe';
+                ctx.lineWidth = 2;
+                ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
+            });
+        }
+        
+        function drawDisappearingPlatforms() {
+            disappearingPlatforms.forEach(platform => {
+                if (platform.visible) {
+                    ctx.fillStyle = platform.timer > 30 ? '#00d2d3' : '#ff9ff3';
+                    ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(platform.x, platform.y, platform.width, platform.height);
+                }
+            });
+        }
+        
+        function drawFallingBlocks() {
+            ctx.fillStyle = '#e67e22';
+            fallingBlocks.forEach(block => {
+                ctx.fillRect(block.x, block.y, block.width, block.height);
+                if (block.triggered && !block.falling) {
+                    ctx.strokeStyle = '#ff0000';
+                    ctx.lineWidth = 3;
+                    ctx.strokeRect(block.x, block.y, block.width, block.height);
+                }
+            });
+        }
+        
+        function drawGoal() {
+            const time = Date.now() / 200;
+            ctx.fillStyle = `hsl(${time % 360}, 70%, 50%)`;
+            ctx.fillRect(goal.x, goal.y, goal.width, goal.height);
+            
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(goal.x, goal.y, goal.width, goal.height);
+            
+            // Draw flag
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(goal.x + goal.width / 2 - 2, goal.y, 4, goal.height);
+            ctx.beginPath();
+            ctx.moveTo(goal.x + goal.width / 2 + 2, goal.y + 5);
+            ctx.lineTo(goal.x + goal.width / 2 + 20, goal.y + 12);
+            ctx.lineTo(goal.x + goal.width / 2 + 2, goal.y + 19);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        function updatePlayer() {
+            if (gameState.isGameOver || gameState.isVictory) return;
+            
+            // Horizontal movement
+            if (gameState.keys['ArrowLeft'] || gameState.keys['a'] || gameState.keys['A']) {
+                player.velocityX = -player.speed;
+            } else if (gameState.keys['ArrowRight'] || gameState.keys['d'] || gameState.keys['D']) {
+                player.velocityX = player.speed;
+            } else {
+                player.velocityX *= gameState.friction;
+            }
+            
+            // Jumping
+            if ((gameState.keys[' '] || gameState.keys['ArrowUp'] || gameState.keys['w'] || gameState.keys['W']) && player.onGround) {
+                player.velocityY = -player.jumpPower;
+                player.onGround = false;
+            }
+            
+            // Apply gravity
+            player.velocityY += gameState.gravity;
+            
+            // Update position
+            player.x += player.velocityX;
+            player.y += player.velocityY;
+            
+            // Check collisions
+            player.onGround = false;
+            checkPlatformCollision();
+            checkMovingPlatformCollision();
+            checkDisappearingPlatformCollision();
+            checkFallingBlockCollision();
+            checkSpikeCollision();
+            checkGoalCollision();
+            
+            // Boundary check
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            
+            // Death by falling
+            if (player.y > canvas.height) {
+                die();
+            }
+        }
+        
+        function checkPlatformCollision() {
+            platforms.forEach(platform => {
+                if (player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y < platform.y + platform.height &&
+                    player.y + player.height > platform.y) {
+                    
+                    // Top collision
+                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= platform.y) {
+                        player.y = platform.y - player.height;
+                        player.velocityY = 0;
+                        player.onGround = true;
+                    }
+                    // Bottom collision
+                    else if (player.velocityY < 0 && player.y - player.velocityY >= platform.y + platform.height) {
+                        player.y = platform.y + platform.height;
+                        player.velocityY = 0;
+                    }
+                    // Side collision
+                    else {
+                        if (player.x < platform.x) {
+                            player.x = platform.x - player.width;
+                        } else {
+                            player.x = platform.x + platform.width;
+                        }
+                        player.velocityX = 0;
+                    }
+                }
+            });
+        }
+        
+        function checkMovingPlatformCollision() {
+            movingPlatforms.forEach(platform => {
+                if (player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y < platform.y + platform.height &&
+                    player.y + player.height > platform.y) {
+                    
+                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= platform.y) {
+                        player.y = platform.y - player.height;
+                        player.velocityY = 0;
+                        player.onGround = true;
+                        
+                        // Move with platform
+                        if (platform.axis !== 'y') {
+                            player.x += platform.speed * platform.direction;
+                        }
+                    }
+                }
+            });
+        }
+        
+        function checkDisappearingPlatformCollision() {
+            disappearingPlatforms.forEach(platform => {
+                if (!platform.visible) return;
+                
+                if (player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y < platform.y + platform.height &&
+                    player.y + player.height > platform.y) {
+                    
+                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= platform.y) {
+                        player.y = platform.y - player.height;
+                        player.velocityY = 0;
+                        player.onGround = true;
+                    }
+                }
+            });
+        }
+        
+        function checkFallingBlockCollision() {
+            fallingBlocks.forEach(block => {
+                if (player.x < block.x + block.width &&
+                    player.x + player.width > block.x &&
+                    player.y < block.y + block.height &&
+                    player.y + player.height > block.y) {
+                    
+                    if (player.velocityY > 0 && player.y + player.height - player.velocityY <= block.y && !block.falling) {
+                        player.y = block.y - player.height;
+                        player.velocityY = 0;
+                        player.onGround = true;
+                        
+                        if (!block.triggered) {
+                            block.triggered = true;
+                            setTimeout(() => {
+                                block.falling = true;
+                            }, 500);
+                        }
+                    }
+                }
+            });
+        }
+        
+        function checkSpikeCollision() {
+            spikes.forEach(spike => {
+                if (player.x < spike.x + spike.width &&
+                    player.x + player.width > spike.x &&
+                    player.y < spike.y + spike.height &&
+                    player.y + player.height > spike.y) {
+                    die();
+                }
+            });
+        }
+        
+        function checkGoalCollision() {
+            if (player.x < goal.x + goal.width &&
+                player.x + player.width > goal.x &&
+                player.y < goal.y + goal.height &&
+                player.y + player.height > goal.y) {
+                victory();
+            }
+        }
+        
+        function updateMovingPlatforms() {
+            movingPlatforms.forEach(platform => {
+                if (platform.axis === 'y') {
+                    platform.y += platform.speed * platform.direction;
+                    if (platform.y <= platform.minY || platform.y >= platform.maxY) {
+                        platform.direction *= -1;
+                    }
+                } else {
+                    platform.x += platform.speed * platform.direction;
+                    if (platform.x <= platform.minX || platform.x >= platform.maxX) {
+                        platform.direction *= -1;
+                    }
+                }
+            });
+        }
+        
+        function updateDisappearingPlatforms() {
+            disappearingPlatforms.forEach(platform => {
+                platform.timer++;
+                
+                if (platform.visible && platform.timer >= platform.visibleTime) {
+                    platform.visible = false;
+                    platform.timer = 0;
+                } else if (!platform.visible && platform.timer >= platform.hiddenTime) {
+                    platform.visible = true;
+                    platform.timer = 0;
+                }
+            });
+        }
+        
+        function updateFallingBlocks() {
+            fallingBlocks.forEach(block => {
+                if (block.falling) {
+                    block.fallSpeed += 0.5;
+                    block.y += block.fallSpeed;
+                }
+            });
+        }
+        
+        function die() {
+            gameState.isGameOver = true;
+            gameState.deaths++;
+            document.getElementById('deaths').textContent = gameState.deaths;
+            document.getElementById('gameOver').classList.remove('hidden');
+        }
+        
+        function victory() {
+            gameState.isVictory = true;
+            document.getElementById('victory').classList.remove('hidden');
+        }
+        
+        function nextLevel() {
+            if (gameState.currentLevel < levels.length) {
+                gameState.currentLevel++;
+                document.getElementById('level').textContent = gameState.currentLevel;
+                loadLevel(gameState.currentLevel);
+            } else {
+                // Game completed
+                gameState.currentLevel = 1;
+                document.getElementById('level').textContent = gameState.currentLevel;
+                loadLevel(1);
+            }
+        }
+        
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawPlatforms();
+            drawSpikes();
+            drawMovingPlatforms();
+            drawDisappearingPlatforms();
+            drawFallingBlocks();
+            drawGoal();
+            drawPlayer();
+            
+            updatePlayer();
+            updateMovingPlatforms();
+            updateDisappearingPlatforms();
+            updateFallingBlocks();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Event listeners
+        window.addEventListener('keydown', (e) => {
+            gameState.keys[e.key] = true;
+            
+            if (e.key === ' ') {
+                e.preventDefault();
+                if (gameState.isGameOver) {
+                    resetLevel();
+                } else if (gameState.isVictory) {
+                    nextLevel();
+                }
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            gameState.keys[e.key] = false;
+        });
+        
+        // Initialize
+        loadLevel(1);
+        gameLoop();
+    </script>
+</body>
+</html>
